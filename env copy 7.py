@@ -42,7 +42,7 @@ class env:
         # self.users=[(48,-3),(49,5),(46,1),(30,10),(70,-20),(39,-18),(55,19),(70,11),(37,8),(26,-12.5)]
         # self.users=[(48,-3),(49,5),(46,1)]
         # self.users=[(48,-3),(48,3)]
-        self.users=[(48,20),(48,-20)]#,(48,-20)
+        self.users=[(48,20)]#,(48,-20)
         self.users_angle=[]
         for u in self.users:
             user_x=u[0]
@@ -62,7 +62,7 @@ class env:
         self.state=np.array([50,0,5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5]).astype(np.float32)
         self.steps=0
         # self.users=[(48,-3),(49,5),(46,1)]
-        self.users=[(48,20),(48,-20)]#,(48,-20)
+        self.users=[(48,20)]#,(48,-20)
         # self.θ=np.zeros([50,50],dtype='complex')
         # for i in range(50):
         #     t=i%10
@@ -77,14 +77,14 @@ class env:
     
     def step(self, action):
         #********************mobile********************#
-        self.steps+=1
-        temp=[]
-        for u in self.users:
-            x=u[0]
-            y=u[1]
-            x=x+5/10000
-            temp.append((x,y))
-        self.users=temp          
+        # self.steps+=1
+        # temp=[]
+        # for u in self.users:
+        #     x=u[0]
+        #     y=u[1]
+        #     x=x+5/10000
+        #     temp.append((x,y))
+        # self.users=temp          
         #********************mobile********************#
           
         # b=[]
