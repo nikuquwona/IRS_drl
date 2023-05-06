@@ -15,9 +15,6 @@ class env:
     
     
     def __init__(self):
-        # 增加用户移动性
-        self.steps=0
-        
         super(env, self).__init__()
         self.state=np.array([50,0,5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5]).astype(np.float32)
         self.θ=np.zeros([50,50],dtype='complex')
@@ -42,7 +39,7 @@ class env:
         # self.users=[(48,-3),(49,5),(46,1),(30,10),(70,-20),(39,-18),(55,19),(70,11),(37,8),(26,-12.5)]
         # self.users=[(48,-3),(49,5),(46,1)]
         # self.users=[(48,-3),(48,3)]
-        self.users=[(48,20),(48,-20)]#,(48,-20)
+        self.users=[(48,-20),(48,20)]
         self.users_angle=[]
         for u in self.users:
             user_x=u[0]
@@ -60,9 +57,7 @@ class env:
         # 30 --> 5
         # self.state=np.array([50,0,5,0.5,0.5,0.5,0.5,0.5]).astype(np.float32)
         self.state=np.array([50,0,5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5]).astype(np.float32)
-        self.steps=0
-        # self.users=[(48,-3),(49,5),(46,1)]
-        self.users=[(48,20),(48,-20)]#,(48,-20)
+        
         # self.θ=np.zeros([50,50],dtype='complex')
         # for i in range(50):
         #     t=i%10
@@ -76,17 +71,7 @@ class env:
         return self.state    
     
     def step(self, action):
-        #********************mobile********************#
-        self.steps+=1
-        temp=[]
-        for u in self.users:
-            x=u[0]
-            y=u[1]
-            x=x+5/10000
-            temp.append((x,y))
-        self.users=temp          
-        #********************mobile********************#
-          
+        
         # b=[]
         # for aa in action:
         #     aa = aa *2-1
@@ -166,16 +151,16 @@ class env:
         distance_irs_user=np.sqrt((x-x_user)**2+(y-y_user)**2+z**2)
         distance_user_ap=np.sqrt((x_user)**2+(y_user)**2+2**2)
         distance_ap_irs=np.sqrt((0-x)**2+(0-y)**2+(2-z)**2)
-        g2=np.multiply(self.g,np.sqrt(10**(-3)*10**(5/10)*distance_ap_irs**(-2)))#-2.2
+        g2=np.multiply(self.g,np.sqrt(10**(-3)*10**(5/10)*distance_ap_irs**(-2.2)))
         for i in range(50):
             self.G[i]=g2
 
         d_hr=distance_irs_user
         d_hd=distance_user_ap
         
-        hr_H=np.multiply(self.Hr_H,np.sqrt((10**(-3))*(10**(-10/10))*(10**(5/10))*(d_hr**(-1))))#-3 # -1
+        hr_H=np.multiply(self.Hr_H,np.sqrt(10**(-3)*10**(-10/10)*10**(5/10)*d_hr**(-1.25)))#-3
         hr=np.conj(hr_H).T
-        hd_H=np.multiply(self.Hd_H,np.sqrt((10**(-3))*(10**(-10/10))*(d_hd**(-1))))#;-3  #-0.8
+        hd_H=np.multiply(self.Hd_H,np.sqrt(10**(-3)*10**(-10/10)*d_hd**(-1.25)))#;-3
         hd=np.conj(hd_H).T
         
         # r = abs(np.dot(np.dot(np.dot(hr_H,self.θ),self.G)+hd_H,self.w))**2

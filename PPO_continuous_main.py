@@ -6,7 +6,7 @@ import gym
 import argparse
 from normalization import Normalization, RewardScaling
 from replaybuffer import ReplayBuffer
-from ppo_continuous import PPO_continuous
+from ppo_continuous import PPO_continuous ,Actor_Gaussian,Critic
 from env import env as ENV
 
 def evaluate_policy(args, env, agent, state_norm):
@@ -154,6 +154,7 @@ def main(args, env_name, number, seed):
                 print("evaluate_num:{} \t evaluate_reward:{} \t".format(evaluate_num, evaluate_reward))
                 print("total_steps",total_steps,"reward",r,"s",state_to_print)
                 writer.add_scalar('step_rewards_{}'.format(env_name), evaluate_rewards[-1], global_step=total_steps)
+                  
                 # Save the rewards
                 if evaluate_num % args.save_freq == 0:
                     np.save('./data_train/PPO_continuous_{}_env_{}_number_{}_seed_{}.npy'.format(args.policy_dist, env_name, number, seed), np.array(evaluate_rewards))
@@ -164,10 +165,10 @@ def main(args, env_name, number, seed):
     plt.plot(np.arange(len(reward_record)), reward_record)
     plt.ylabel('Reward')
     plt.xlabel('steps')
-    plt.savefig('figs/reward_record10.png')
+    plt.savefig('figs/reward_record32.png')
     plt.show()
     
-    with open("filename_11.txt", "a") as file:
+    with open("filename_32.txt", "a") as file:
         print('len(path)',len(path))
         file.write(str(path))
         file.close()
@@ -203,4 +204,10 @@ if __name__ == '__main__':
 
     env_name = ['test','BipedalWalker-v3', 'HalfCheetah-v2', 'Hopper-v2', 'Walker2d-v2']
     env_index = 0
-    main(args, env_name=env_name[env_index], number=20, seed=10)
+    main(args, env_name=env_name[env_index], number=32, seed=10)
+    
+    # 26 yidong
+    # 27 buyi dong
+
+    # 28 -1 -1 -1 (48,20)
+    # 29 -1 -1 -1 (48,20) (48,-20)
