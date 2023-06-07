@@ -161,21 +161,38 @@ def main(args, env_name, number, seed):
     #输出最终结果
     print('ans_max',ans_max,'ans_state',ans_state)
     #输出最后一回合它的路径  reward_record
+    
+    # agent.actor_loss
+    print('len',len(agent.actor_loss))
+    # input()
+    plt.plot(np.arange(len(agent.actor_loss)), agent.actor_loss)
+    plt.ylabel('actor loss')
+    plt.xlabel('steps')
+    # plt.savefig('figs/actor_loss.png',dpi='1000')
+    plt.show()
+
+    plt.plot(np.arange(len(agent.critic_loss)), agent.critic_loss)
+    plt.ylabel('critic loss')
+    plt.xlabel('steps')
+    # plt.savefig('figs/critic_loss.png',dpi='1000')
+    plt.show()
+    
     print()
     plt.plot(np.arange(len(reward_record)), reward_record)
     plt.ylabel('Reward')
     plt.xlabel('steps')
-    plt.savefig('figs/reward_record32.png')
+    plt.savefig('figs/reward_record40.png')
     plt.show()
     
-    with open("filename_32.txt", "a") as file:
-        print('len(path)',len(path))
-        file.write(str(path))
-        file.close()
+    
+    # with open("filename_40.txt", "a") as file:
+    #     print('len(path)',len(path))
+    #     file.write(str(path))
+    #     file.close()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser("Hyperparameters Setting for PPO-continuous")
-    parser.add_argument("--max_train_steps", type=int, default=int(3e6), help=" Maximum number of training steps")
+    parser.add_argument("--max_train_steps", type=int, default=int(3e5), help=" Maximum number of training steps")
     # 经过测试 700k 就差不多  将 3e6改为7e5
     parser.add_argument("--evaluate_freq", type=float, default=5e3, help="Evaluate the policy every 'evaluate_freq' steps")
     parser.add_argument("--save_freq", type=int, default=20, help="Save frequency")
@@ -204,7 +221,7 @@ if __name__ == '__main__':
 
     env_name = ['test','BipedalWalker-v3', 'HalfCheetah-v2', 'Hopper-v2', 'Walker2d-v2']
     env_index = 0
-    main(args, env_name=env_name[env_index], number=32, seed=10)
+    main(args, env_name=env_name[env_index], number=47, seed=10)
     
     # 26 yidong
     # 27 buyi dong

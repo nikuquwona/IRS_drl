@@ -99,6 +99,9 @@ class Critic(nn.Module):
 
 class PPO_continuous():
     def __init__(self, args):
+        self.actor_loss=[]
+        self.critic_loss=[]
+        
         self.policy_dist = args.policy_dist
         self.max_action = args.max_action
         self.batch_size = args.batch_size
@@ -186,6 +189,8 @@ class PPO_continuous():
                 surr1 = ratios * adv[index]  # Only calculate the gradient of 'a_logprob_now' in ratios
                 surr2 = torch.clamp(ratios, 1 - self.epsilon, 1 + self.epsilon) * adv[index]
                 actor_loss = -torch.min(surr1, surr2) - self.entropy_coef * dist_entropy  # Trick 5: policy entropy
+                self.actor_loss.append(float(actor_loss.mean().item()))
+                # print('actor_loss',actor_loss.mean().item())
                 # Update actor
                 self.optimizer_actor.zero_grad()
                 actor_loss.mean().backward()
@@ -195,6 +200,8 @@ class PPO_continuous():
 
                 v_s = self.critic(s[index])
                 critic_loss = F.mse_loss(v_target[index], v_s)
+                self.critic_loss.append(float(critic_loss.mean().item()))
+                # print('critic_loss',critic_loss.mean().item())
                 # Update critic
                 self.optimizer_critic.zero_grad()
                 critic_loss.backward()

@@ -11,10 +11,12 @@ import  random
 import math
 import numpy as np
 
+
 class env:
     
     
     def __init__(self):
+        self.aaaa=0
         # 增加用户移动性
         self.steps=0
         
@@ -42,7 +44,8 @@ class env:
         # self.users=[(48,-3),(49,5),(46,1),(30,10),(70,-20),(39,-18),(55,19),(70,11),(37,8),(26,-12.5)]
         # self.users=[(48,-3),(49,5),(46,1)]
         # self.users=[(48,-3),(48,3)]
-        self.users=[(48,20),(48,-20)]#,(48,-20)
+        # self.users=[(48,20),(48,-20)]#,(48,-20)
+        self.users=[(48,-3),(49,5),(46,1),(30,10),(70,-20),(39,-18),(55,19),(70,11),(37,8),(26,-12.5)]
         self.users_angle=[]
         for u in self.users:
             user_x=u[0]
@@ -61,8 +64,8 @@ class env:
         # self.state=np.array([50,0,5,0.5,0.5,0.5,0.5,0.5]).astype(np.float32)
         self.state=np.array([50,0,5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5]).astype(np.float32)
         self.steps=0
-        # self.users=[(48,-3),(49,5),(46,1)]
-        self.users=[(48,20),(48,-20)]#,(48,-20)
+        self.users=[(48,-3),(49,5),(46,1),(30,10),(70,-20),(39,-18),(55,19),(70,11),(37,8),(26,-12.5)]
+        # self.users=[(48,20),(48,-20)]#,(48,-20)
         # self.θ=np.zeros([50,50],dtype='complex')
         # for i in range(50):
         #     t=i%10
@@ -76,6 +79,9 @@ class env:
         return self.state    
     
     def step(self, action):
+        # before_reward = self.output()
+        # print('before_reward',before_reward*len(self.users))
+        # input()
         #********************mobile********************#
         self.steps+=1
         temp=[]
@@ -84,7 +90,8 @@ class env:
             y=u[1]
             x=x+5/10000
             temp.append((x,y))
-        self.users=temp          
+        self.users=temp        
+        # print("self.users",self.users)  
         #********************mobile********************#
           
         # b=[]
@@ -166,7 +173,9 @@ class env:
         distance_irs_user=np.sqrt((x-x_user)**2+(y-y_user)**2+z**2)
         distance_user_ap=np.sqrt((x_user)**2+(y_user)**2+2**2)
         distance_ap_irs=np.sqrt((0-x)**2+(0-y)**2+(2-z)**2)
-        g2=np.multiply(self.g,np.sqrt(10**(-3)*10**(5/10)*distance_ap_irs**(-2)))#-2.2
+        g2=np.multiply(self.g,np.sqrt(10**(-3)*(10**(-10/10))*10**(5/10)*distance_ap_irs**(-1)))# 1 1.5 1.8 -2.2 -3
+        # g2=np.multiply(self.g,np.sqrt(10**(-3)*10**(5/10)*distance_ap_irs**(-1)))# 1 1.5 1.8 -2.2 -3
+        
         for i in range(50):
             self.G[i]=g2
 
@@ -193,6 +202,11 @@ class env:
                 θ[10*i+j][10*i+j]=math.cos(2*math.pi*t)*math.cos(2*math.pi*t2) +1j*math.cos(2*math.pi*t)*math.cos(2*math.pi*t2)
         
         r = abs(np.dot(np.dot(np.dot(hr_H,θ),self.G)+hd_H,self.w))**2
+        # r1 =abs(np.dot(np.dot(np.dot(hr_H,θ),self.G),self.w))**2
+        # r2 = abs(np.dot(hd_H,self.w))**2
+        # print('withoutirs',r2)
+        # self.aaaa+=r2
+        # print('totalr2',self.aaaa)
         return r[0][0]
     
     # def output(self,d0,dr):
@@ -231,12 +245,12 @@ class env:
     
     
     
-    
+    0.0000030841
     ans_max 3.0841003052306504e-06 ans_state [25.003265   23.018454    2.0010896   0.26124963  0.25815082  0.26471037
   0.26354408  0.26185796  0.7028972   0.70030254  0.7032219   0.7030627
   0.6925693 ]
     
-    
+    0.0000000624816411
     ans_max 6.248416411575145e-08 ans_state [ 25.005531   -22.44181      2.0071726    0.767906     0.27152106
    0.26432893   0.25604406   0.26406842   0.81904733   0.3174646
    0.31303293   0.32379565   0.3240798 ]
