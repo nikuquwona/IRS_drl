@@ -1,4 +1,5 @@
 from matplotlib import pyplot as plt
+from sklearn.cluster import KMeans
 import torch
 import numpy as np
 from torch.utils.tensorboard import SummaryWriter
@@ -38,9 +39,24 @@ def evaluate_policy(args, env, agent, state_norm):
     return evaluate_reward / times
 
 
+def group_points(coordinates, M):
+        # 创建K-means模型
+        kmeans = KMeans(n_clusters=M)
+
+        # 拟合模型
+        kmeans.fit(coordinates)
+
+        # 获取每个点的标签
+        labels = kmeans.labels_
+
+        # 根据标签分组
+        groups = [[] for _ in range(M)]
+        for i, label in enumerate(labels):
+            groups[label].append(coordinates[i])
+
+        return groups
+
 def main(args, env_name, number, seed):
-    env = ENV()#gym.make(env_name)
-    env_evaluate = ENV()#gym.make(env_name)  # When evaluating the policy, we need to rebuild an environment
     # Set random seed
     # env.seed(seed)
     # env.action_space.seed(seed)
@@ -48,7 +64,24 @@ def main(args, env_name, number, seed):
     # env_evaluate.action_space.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
-
+    
+    args.agent_num=3
+    
+    users=[(40,3),(44,0),(42,1),(50,5)]
+    groups =group_points(users, args.agent_num)
+    
+    print(groups)
+    #[[(50, 5)], [(44, 0), (42, 1)], [(40, 3)]]
+    # input()
+    envs=[]
+    env_evaluates=[]
+    for i in range(args.agent_num):
+        envs.append(ENV(groups[i]))
+        env_evaluates.append(ENV(groups[i]))
+    # env = ENV([(40,3),(44,0),(42,1)])
+    # env_evaluate = ENV([(40,3),(44,0),(42,1)])
+    
+    
     args.state_dim = 13#8#env.observation_space.shape[0]
     args.action_dim = 13#8#env.action_space.shape[0]
     args.max_action = 1#float(env.action_space.high[0]) # -1,1
@@ -63,8 +96,14 @@ def main(args, env_name, number, seed):
     evaluate_rewards = []  # Record the rewards during the evaluating
     total_steps = 0  # Record the total steps during the training
 
-    replay_buffer = ReplayBuffer(args)
-    agent = PPO_continuous(args)
+    replay_buffers=[]
+    agents=[]
+    for _ in range(args.agent_num):
+        replay_buffers.append(ReplayBuffer(args))
+        agents.append(PPO_continuous(args))
+    # replay_buffer = ReplayBuffer(args)
+    # agent = PPO_continuous(args)
+
     ## load
         # 保存和加载模型还没有
 
@@ -82,67 +121,111 @@ def main(args, env_name, number, seed):
     ans_state=[]
     ###
     reward_record=[]
-    path=[]
+    path_1=[]
+    path_2=[]
+    path_3=[]
     ###
     while total_steps < args.max_train_steps:
-        s = env.reset()
-        path=[]
-        path.append(s.tolist())
-
+        s=[]
+        for env in envs:
+            s.append(env.reset())
+        # print(s)
+        # input()
+        # s = env.reset() # 返回的是什么
+        # path=[]
+        path_1=[]
+        path_2=[]
+        path_3=[]
+        path_1.append(s[0].tolist())
+        path_2.append(s[1].tolist())
+        path_3.append(s[2].tolist())
+        
         if args.use_state_norm:
-            s = state_norm(s)
+            for i in range(args.agent_num):
+                s[i]=state_norm(s[i])
+            # s = state_norm(s)
         if args.use_reward_scaling:
             reward_scaling.reset()
         episode_steps = 0
-        done = False
-        while not done:
+        ddone = False
+        while not ddone:
             episode_steps += 1
-            a, a_logprob = agent.choose_action(s)  # Action and the corresponding log probability
-            print("a",a,"a_logprob",a_logprob)
+            a=[]
+            a_logprob=[]
+            for i in range(args.agent_num):
+                t1,t2=agents[i].choose_action(s[i])
+                a.append(t1)
+                a_logprob.append(t2)
+                
+            # a, a_logprob = agent.choose_action(s)  # Action and the corresponding log probability
+            # print("a",a,"a_logprob",a_logprob)
             if args.policy_dist == "Beta":
                 action = 2 * (a - 0.5) * args.max_action  # [0,1]->[-max,max]
             else:
                 action = a
-            s_, r, done, _ = env.step(action)
+                
+            s_=[]
+            r=[]
+            done=[]
+            
+            for i in range(args.agent_num):
+                t1, t2, t3, _ =envs[i].step(action[i])
+                s_.append(t1)
+                r.append(t2)
+                done.append(t3)
+                
+            # s_, r, done, _ = env.step(action)
 
             ###
             if total_steps>=args.max_train_steps-args.max_episode_steps:
-                reward_record.append(r)
-            path.append(s_.tolist())
+                reward_record.append(r[0])
+            path_1.append(s_[0].tolist())
+            path_2.append(s_[1].tolist())
+            path_3.append(s_[2].tolist())
+            
             # print('path',path)
-            state_to_print=s_
+            state_to_print=s_[0]#s_[0]
             if episode_steps==args.max_episode_steps:
-                done =True
-                if r>ans_max:
-                    ans_max=r
+                for i in range(args.agent_num):
+                    done[i] =True
+                ddone=True
+                r_sum=0
+                for i in range(args.agent_num):
+                    r_sum+=r[i]
+                if r[0]>ans_max:
+                    ans_max=r[0]
                     ans_state=state_to_print
             ###
-
-            if args.use_state_norm:
-                s_ = state_norm(s_)
-            if args.use_reward_norm:
-                r = reward_norm(r)
-            elif args.use_reward_scaling:
-                r = reward_scaling(r)
+            for i in range(args.agent_num):
+                if args.use_state_norm:
+                    s_[i] = state_norm(s_[i])
+                if args.use_reward_norm:
+                    r[i] = reward_norm(r[i])
+                elif args.use_reward_scaling:
+                    r[i] = reward_scaling(r[i])
 
             
             # When dead or win or reaching the max_episode_steps, done will be Ture, we need to distinguish them;
             # dw means dead or win,there is no next state s';
             # but when reaching the max_episode_steps,there is a next state s' actually.
-            if done and episode_steps != args.max_episode_steps:
+            if done[0] and episode_steps != args.max_episode_steps:
                 dw = True
             else:
                 dw = False
 
             # Take the 'action'，but store the original 'a'（especially for Beta）
-            replay_buffer.store(s, a, a_logprob, r, s_, dw, done)
-            s = s_
+            # replay_buffer.store(s, a, a_logprob, r, s_, dw, done)
+            for i in range(args.agent_num):
+                replay_buffers[i].store(s[i], a[i], a_logprob[i], r[i], s_[i], dw, done[i])
+                s[i]=s_[i]
+            # s = s_
             total_steps += 1
 
             # When the number of transitions in buffer reaches batch_size,then update
-            if replay_buffer.count == args.batch_size:
-                agent.update(replay_buffer, total_steps)
-                replay_buffer.count = 0
+            for i in range(args.agent_num):
+                if replay_buffers[i].count == args.batch_size:
+                    agents[i].update(replay_buffers[i], total_steps)
+                    replay_buffers[i].count = 0
 
             # Evaluate the policy every 'evaluate_freq' steps
             # if total_steps%1000==0:
@@ -150,54 +233,70 @@ def main(args, env_name, number, seed):
                 
             if total_steps % args.evaluate_freq == 0:
                 evaluate_num += 1
-                evaluate_reward = evaluate_policy(args, env_evaluate, agent, state_norm)
+                evaluate_reward=0
+                for i in range(args.agent_num):
+                    evaluate_reward+=evaluate_policy(args, env_evaluates[i], agents[i], state_norm)
+                evaluate_reward=evaluate_reward/args.agent_num
+                
+                # evaluate_reward = evaluate_policy(args, env_evaluate, agent, state_norm)
                 evaluate_rewards.append(evaluate_reward)
                 print("evaluate_num:{} \t evaluate_reward:{} \t".format(evaluate_num, evaluate_reward))
-                print("total_steps",total_steps,"reward",r,"s",state_to_print)
+                
+                print("total_steps",total_steps,"reward",r,"s",state_to_print)#state_to_print
+                
                 writer.add_scalar('step_rewards_{}'.format(env_name), evaluate_rewards[-1], global_step=total_steps)
                   
                 # Save the rewards
                 if evaluate_num % args.save_freq == 0:
                     np.save('./data_train/PPO_continuous_{}_env_{}_number_{}_seed_{}.npy'.format(args.policy_dist, env_name, number, seed), np.array(evaluate_rewards))
     #输出最终结果
+    print(groups)
     print('ans_max',ans_max,'ans_state',ans_state)
     #输出最后一回合它的路径  reward_record
     
-    # agent.actor_loss
-    print('len',len(agent.actor_loss))
-    # input()
-    plt.plot(np.arange(len(agent.actor_loss)), agent.actor_loss)
-    plt.ylabel('actor loss')
-    plt.xlabel('steps')
-    # plt.savefig('figs/actor_loss.png',dpi='1000')
-    plt.show()
+    # # agent.actor_loss
+    # print('len',len(agents[0].actor_loss))
+    # # input()
+    # plt.plot(np.arange(len(agents[0].actor_loss)), agent.actor_loss)
+    # plt.ylabel('actor loss')
+    # plt.xlabel('steps')
+    # # plt.savefig('figs/actor_loss.png',dpi='1000')
+    # plt.show()
 
-    plt.plot(np.arange(len(agent.critic_loss)), agent.critic_loss)
-    plt.ylabel('critic loss')
-    plt.xlabel('steps')
-    # plt.savefig('figs/critic_loss.png',dpi='1000')
-    plt.show()
+    # plt.plot(np.arange(len(agent.critic_loss)), agent.critic_loss)
+    # plt.ylabel('critic loss')
+    # plt.xlabel('steps')
+    # # plt.savefig('figs/critic_loss.png',dpi='1000')
+    # plt.show()
     
-    print()
-    plt.plot(np.arange(len(reward_record)), reward_record)
-    plt.ylabel('Reward')
-    plt.xlabel('steps')
-    # plt.savefig('figs/reward_record40.png')
-    plt.show()
+    # print()
+    # plt.plot(np.arange(len(reward_record)), reward_record)
+    # plt.ylabel('Reward')
+    # plt.xlabel('steps')
+    # # plt.savefig('figs/reward_record40.png')
+    # plt.show()
     
     # 41 单用户(48,3)
     # 42 单用户(40,3)
     # 43 双用户(40,3),(44,0)
     
     # 45 10 users
-    with open("filename_48.txt", "a") as file:
-        print('len(path)',len(path))
-        file.write(str(path))
+    with open("filename_68_1.txt", "a") as file:
+        print('len(path_1)',len(path_1))
+        file.write(str(path_1))
+        file.close()
+    with open("filename_68_2.txt", "a") as file:
+        print('len(path_2)',len(path_2))
+        file.write(str(path_2))
+        file.close()
+    with open("filename_68_3.txt", "a") as file:
+        print('len(path_3)',len(path_3))
+        file.write(str(path_3))
         file.close()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser("Hyperparameters Setting for PPO-continuous")
-    parser.add_argument("--max_train_steps", type=int, default=int(5e5), help=" Maximum number of training steps")
+    parser.add_argument("--max_train_steps", type=int, default=int(10e5), help=" Maximum number of training steps")
     # 经过测试 700k 就差不多  将 3e6改为7e5
     parser.add_argument("--evaluate_freq", type=float, default=5e3, help="Evaluate the policy every 'evaluate_freq' steps")
     parser.add_argument("--save_freq", type=int, default=20, help="Save frequency")
@@ -226,7 +325,7 @@ if __name__ == '__main__':
 
     env_name = ['test','BipedalWalker-v3', 'HalfCheetah-v2', 'Hopper-v2', 'Walker2d-v2']
     env_index = 0
-    main(args, env_name=env_name[env_index], number=55, seed=10)
+    main(args, env_name=env_name[env_index], number=68, seed=10)
     
     # 26 yidong
     # 27 buyi dong
